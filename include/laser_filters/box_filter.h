@@ -49,12 +49,37 @@
 
 #include <filters/filter_base.h>
 
-#include <sensor_msgs/LaserScan.h>
-#include <sensor_msgs/point_cloud_conversion.h>
-#include <laser_geometry/laser_geometry.h>
-
+#ifndef ROS2
 #include <tf/transform_datatypes.h>
 #include <tf/transform_listener.h>
+#include <sensor_msgs/LaserScan.h>
+#include <sensor_msgs/point_cloud_conversion.h>
+
+typedef sensor_msgs::LaserScan LaserScan;
+typedef tf::TransformListener TransformListener;
+typedef tf::TransformException TransformException;
+typedef tf::Point Point;
+
+#include "ros/ros.h"
+#else
+#include <tf2/transform_datatypes.h>
+#include <tf2_ros/transform_listener.h>
+#include <sensor_msgs/msg/Laser_Scan.hpp>
+
+typedef sensor_msgs::msg::LaserScan LaserScan;
+typedef tf2_ros::TransformListener TransformListener;
+typedef tf2::TransformException TransformException;
+typedef tf2::Vector3 Point;
+
+
+#define ROS_WARN(...)
+#define ROS_WARN_THROTTLE(...)
+#define ROS_INFO_THROTTLE(...)
+
+#endif // !ROS2
+
+#include <laser_geometry/laser_geometry.h>
+
 
 
 namespace laser_filters
@@ -62,26 +87,27 @@ namespace laser_filters
 /**
  * @brief This is a filter that removes points in a laser scan inside of a cartesian box.
  */
-class LaserScanBoxFilter : public filters::FilterBase<sensor_msgs::LaserScan>
+class LaserScanBoxFilter : public filters::FilterBase<LaserScan>
 {
   public:
     LaserScanBoxFilter();
     bool configure();
 
     bool update(
-      const sensor_msgs::LaserScan& input_scan,
-      sensor_msgs::LaserScan& filtered_scan);
+      const LaserScan& input_scan,
+      LaserScan& filtered_scan);
 
   private:
-    bool inBox(tf::Point &point);
+    bool inBox(Point &point);
     std::string box_frame_;
     laser_geometry::LaserProjection projector_;
     
     // tf listener to transform scans into the box_frame
-    tf::TransformListener tf_; 
-    
+    TransformListener tf_; 
+    tf2_ros::Buffer buffer_;
+
     // defines two opposite corners of the box
-    tf::Point min_, max_; 
+    Point min_, max_; 
     bool up_and_running_;
 };
 

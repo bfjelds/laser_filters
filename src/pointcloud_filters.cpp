@@ -27,8 +27,18 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef ROS2
 #include "sensor_msgs/PointCloud.h"
-#include "laser_filters/point_cloud_footprint_filter.h"
-#include "pluginlib/class_list_macros.h"
 
-PLUGINLIB_EXPORT_CLASS(laser_filters::PointCloudFootprintFilter, filters::FilterBase<sensor_msgs::PointCloud>)
+typedef sensor_msgs::PointCloud PointCloud;
+#else
+#include "sensor_msgs/msg/Point_Cloud.hpp"
+
+typedef sensor_msgs::msg::PointCloud PointCloud;
+#endif // !ROS2
+
+#include "laser_filters/point_cloud_footprint_filter.h"
+#include <class_loader/class_loader.h>
+
+
+CLASS_LOADER_REGISTER_CLASS(laser_filters::PointCloudFootprintFilter, filters::FilterBase<PointCloud>)

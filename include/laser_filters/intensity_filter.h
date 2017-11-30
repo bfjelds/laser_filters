@@ -42,12 +42,21 @@
 
 
 #include "filters/filter_base.h"
-#include "sensor_msgs/LaserScan.h"
+
+#ifndef ROS2
+#include <sensor_msgs/LaserScan.h>
+
+typedef sensor_msgs::LaserScan LaserScan;
+#else
+#include <sensor_msgs/msg/Laser_Scan.hpp>
+
+typedef sensor_msgs::msg::LaserScan LaserScan;
+#endif // !ROS2
 
 namespace laser_filters
 {
 
-class LaserScanIntensityFilter : public filters::FilterBase<sensor_msgs::LaserScan>
+class LaserScanIntensityFilter : public filters::FilterBase<LaserScan>
 {
 public:
 
@@ -72,7 +81,7 @@ public:
 
   virtual ~LaserScanIntensityFilter(){}
 
-  bool update(const sensor_msgs::LaserScan& input_scan, sensor_msgs::LaserScan& filtered_scan)
+  bool update(const LaserScan& input_scan, LaserScan& filtered_scan)
   {
     const double hist_max = 4*12000.0 ;
     const int num_buckets = 24 ;

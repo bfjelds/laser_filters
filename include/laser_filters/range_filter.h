@@ -41,12 +41,22 @@
 
 
 #include "filters/filter_base.h"
-#include "sensor_msgs/LaserScan.h"
+#ifndef ROS2
+#include <sensor_msgs/LaserScan.h>
+typedef sensor_msgs::LaserScan LaserScane;
+#else
+#include <sensor_msgs/msg/Laser_Scan.hpp>
+typedef sensor_msgs::msg::LaserScan LaserScan;
+
+#define ROS_INFO(...)
+#define ROS_WARN(...)
+
+#endif // !ROS2
 
 namespace laser_filters
 {
 
-class LaserScanRangeFilter : public filters::FilterBase<sensor_msgs::LaserScan>
+class LaserScanRangeFilter : public filters::FilterBase<LaserScan>
 {
 public:
 
@@ -84,7 +94,7 @@ public:
 
   }
 
-  bool update(const sensor_msgs::LaserScan& input_scan, sensor_msgs::LaserScan& filtered_scan)
+  bool update(const LaserScan& input_scan, LaserScan& filtered_scan)
   {
     if (use_message_range_limits_)
     {

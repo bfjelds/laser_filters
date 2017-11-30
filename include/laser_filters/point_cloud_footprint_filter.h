@@ -43,17 +43,37 @@ This is useful for ground plane extraction
 
 #include "laser_geometry/laser_geometry.h"
 #include "filters/filter_base.h"
+#ifndef ROS2
 #include "tf/transform_listener.h"
 #include "sensor_msgs/PointCloud.h"
+
+typedef sensor_msgs::PointCloud PointCloud;
+typedef tf::TransformListener TransformListener;
+typedef tf::TransformException TransformException;
+typedef geometry_msgs::Point32 Point32;
+
 #include "ros/ros.h"
+#else
+#include "tf2_ros/transform_listener.h"
+#include "sensor_msgs/msg/Point_Cloud.hpp"
+#include "geometry_msgs/msg/Point32.hpp"
+
+typedef geometry_msgs::msg::Point32 Point32;
+typedef sensor_msgs::msg::PointCloud PointCloud;
+typedef tf2_ros::TransformListener TransformListener;
+typedef tf2::TransformException TransformException;
+
+#define ROS_WARN(...)
+
+#endif // !ROS2
 
 namespace laser_filters
 {
 
-class PointCloudFootprintFilter : public filters::FilterBase<sensor_msgs::PointCloud>
+class PointCloudFootprintFilter : public filters::FilterBase<PointCloud>
 {
 public:
-  PointCloudFootprintFilter() {
+  PointCloudFootprintFilter() : tf_(buffer_) {
     ROS_WARN("PointCloudFootprintFilter has been deprecated.  Please use PR2PointCloudFootprintFilter instead.\n");
   }
 
@@ -72,21 +92,23 @@ public:
 
   }
 
-  bool update(const sensor_msgs::PointCloud& input_scan, sensor_msgs::PointCloud& filtered_scan)
+  bool update(const PointCloud& input_scan, PointCloud& filtered_scan)
   {
     if(&input_scan == &filtered_scan){
       ROS_ERROR("This filter does not currently support in place copying");
       return false;
     }
-    sensor_msgs::PointCloud laser_cloud;
+    PointCloud laser_cloud;
 
+#ifndef TRANSFORM_LISTENER_NOT_IMPLEMENTED
     try{
       tf_.transformPointCloud("base_link", input_scan, laser_cloud);
     }
-    catch(tf::TransformException& ex){
+    catch(TransformException& ex){
       ROS_ERROR("Transform unavailable %s", ex.what());
       return false;
     }
+#endif // !TRANSFORM_LISTENER_NOT_IMPLEMENTED
 
     filtered_scan.header = input_scan.header;
     filtered_scan.points.resize (input_scan.points.size());
@@ -116,14 +138,15 @@ public:
   }
 
 
-  bool inFootprint(const geometry_msgs::Point32& scan_pt){
+  bool inFootprint(const Point32& scan_pt){
     if(scan_pt.x < -1.0 * inscribed_radius_ || scan_pt.x > inscribed_radius_ || scan_pt.y < -1.0 * inscribed_radius_ || scan_pt.y > inscribed_radius_)
       return false;
     return true;
   }
 
 private:
-  tf::TransformListener tf_;
+  tf2_ros::Buffer buffer_;
+  TransformListener tf_;
   laser_geometry::LaserProjection projector_;
   double inscribed_radius_;
 } ;

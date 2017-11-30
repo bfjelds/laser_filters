@@ -28,118 +28,179 @@
  */
 
 
+#ifndef ROS2
 #include "ros/ros.h"
 #include "sensor_msgs/LaserScan.h"
-#include "message_filters/subscriber.h"
+
+typedef sensor_msgs::LaserScan LaserScane;
+
+// TF
+#include <tf/transform_listener.h>
 #include "tf/message_filter.h"
-#include "tf/transform_listener.h"
+#include "message_filters/subscriber.h"
+
+typedef tf::TransformException TransformException;
+typedef tf::TransformListener TransformListener;
+
+#else
+#include <rclcpp/rclcpp.hpp>
+#include <sensor_msgs/msg/Laser_Scan.hpp>
+
+typedef sensor_msgs::msg::LaserScan LaserScan;
+
+// TF
+#include <tf2_ros/transform_listener.h>
+#include "tf2_ros/message_filter.h"
+
+typedef tf2::TransformException TransformException;
+typedef tf2_ros::TransformListener TransformListener;
+
+#include "message_filters/subscriber.h"
+
+#define NO_TIMER
+
+#endif // !ROS2
+
 #include "filters/filter_chain.h"
 
 class ScanToScanFilterChain
 {
 protected:
   // Our NodeHandle
+#ifndef ROS2
   ros::NodeHandle nh_;
   ros::NodeHandle private_nh_;
+#else
+  rclcpp::Node::SharedPtr nh_;
+  rclcpp::Node::SharedPtr private_nh_;
+#endif // !ROS2
 
   // Components for tf::MessageFilter
-  tf::TransformListener *tf_;
-  message_filters::Subscriber<sensor_msgs::LaserScan> scan_sub_;
-  tf::MessageFilter<sensor_msgs::LaserScan> *tf_filter_;
+  TransformListener tf_;
+  tf2_ros::Buffer buffer_;
+
+  message_filters::Subscriber<LaserScan> scan_sub_;
+#ifndef ROS2
+  tf2::MessageFilter<LaserScan> tf_filter_;
+#else
+  tf2_ros::MessageFilter<LaserScan> tf_filter_;
+#endif // !ROS2
   double tf_filter_tolerance_;
 
   // Filter Chain
-  filters::FilterChain<sensor_msgs::LaserScan> filter_chain_;
+  filters::FilterChain<LaserScan> filter_chain_;
 
   // Components for publishing
-  sensor_msgs::LaserScan msg_;
+  LaserScan msg_;
+#ifndef ROS2
   ros::Publisher output_pub_;
+#else
+  rclcpp::Publisher<LaserScan>::SharedPtr output_pub_;
+#endif // !ROS2
 
   // Deprecation helpers
+#ifndef NO_TIMER
   ros::Timer deprecation_timer_;
+#endif // !NO_TIMER
   bool  using_filter_chain_deprecated_;
 
 public:
   // Constructor
   ScanToScanFilterChain() :
-    private_nh_("~"),
+    nh_(rclcpp::Node::make_shared("scan_to_scan_filter_chain")),
+    private_nh_(rclcpp::Node::make_shared("~")),
     scan_sub_(nh_, "scan", 50),
-    tf_(NULL),
-    tf_filter_(NULL),
-    filter_chain_("sensor_msgs::LaserScan")
+    tf_(buffer_),
+    tf_filter_(scan_sub_, buffer_, "", 50),
+    filter_chain_("LaserScan")
   {
     // Configure filter chain
     
-    using_filter_chain_deprecated_ = private_nh_.hasParam("filter_chain");
+    rclcpp::parameter::ParameterVariant variant;
+    using_filter_chain_deprecated_ = !private_nh_->get_parameter("filter_chain", variant);
 
     if (using_filter_chain_deprecated_)
-      filter_chain_.configure("filter_chain", private_nh_);
+      filter_chain_.configure("filter_chain"/*, private_nh_*/);
     else
-      filter_chain_.configure("scan_filter_chain", private_nh_);
+      filter_chain_.configure("scan_filter_chain"/*, private_nh_*/);
     
     std::string tf_message_filter_target_frame;
 
-    if (private_nh_.hasParam("tf_message_filter_target_frame"))
+    if (!private_nh_->get_parameter("tf_message_filter_target_frame", variant))
     {
-      private_nh_.getParam("tf_message_filter_target_frame", tf_message_filter_target_frame);
+      private_nh_->get_parameter("tf_message_filter_target_frame", tf_message_filter_target_frame);
 
-      private_nh_.param("tf_message_filter_tolerance", tf_filter_tolerance_, 0.03);
+      private_nh_->get_parameter_or("tf_message_filter_tolerance", tf_filter_tolerance_, 0.03);
 
-      tf_ = new tf::TransformListener();
-      tf_filter_ = new tf::MessageFilter<sensor_msgs::LaserScan>(scan_sub_, *tf_, "", 50);
-      tf_filter_->setTargetFrame(tf_message_filter_target_frame);
-      tf_filter_->setTolerance(ros::Duration(tf_filter_tolerance_));
+      tf_filter_.setTargetFrame(tf_message_filter_target_frame);
+      tf_filter_.setTolerance(tf2::Duration(ros::Duration(tf_filter_tolerance_).toNSec()));
 
       // Setup tf::MessageFilter generates callback
-      tf_filter_->registerCallback(boost::bind(&ScanToScanFilterChain::callback, this, _1));
+      auto boostFxn = boost::bind(&ScanToScanFilterChain::callback, this, _1);
+      tf_filter_.registerCallback(boostFxn);
     }
     else 
     {
       // Pass through if no tf_message_filter_target_frame
-      scan_sub_.registerCallback(boost::bind(&ScanToScanFilterChain::callback, this, _1));
+      auto boostFxn = boost::bind(&ScanToScanFilterChain::callback, this, _1);
+      scan_sub_.registerCallback(boostFxn);
     }
     
     // Advertise output
-    output_pub_ = nh_.advertise<sensor_msgs::LaserScan>("scan_filtered", 1000);
+    output_pub_ = nh_->create_publisher<LaserScan>("scan_filtered", 1000);
 
+#ifndef NO_TIMER
     // Set up deprecation printout
     deprecation_timer_ = nh_.createTimer(ros::Duration(5.0), boost::bind(&ScanToScanFilterChain::deprecation_warn, this, _1));
+#endif // !NO_TIMER
   }
 
   // Destructor
   ~ScanToScanFilterChain()
   {
+#ifndef ROS2
     if (tf_filter_)
       delete tf_filter_;
     if (tf_)
       delete tf_;
+#endif // !ROS2
   }
   
+#ifndef NO_TIMER
   // Deprecation warning callback
   void deprecation_warn(const ros::TimerEvent& e)
   {
     if (using_filter_chain_deprecated_)
       ROS_WARN("Use of '~filter_chain' parameter in scan_to_scan_filter_chain has been deprecated. Please replace with '~scan_filter_chain'.");
   }
+#endif // !NO_TIMER
 
   // Callback
-  void callback(const sensor_msgs::LaserScan::ConstPtr& msg_in)
+  void callback(const boost::shared_ptr<const LaserScan>& msg_in)
   {
     // Run the filter chain
     if (filter_chain_.update(*msg_in, msg_))
     {
       //only publish result if filter succeeded
-      output_pub_.publish(msg_);
+      output_pub_->publish(msg_);
     }
   }
 };
 
 int main(int argc, char **argv)
 {
+#ifndef ROS2
   ros::init(argc, argv, "scan_to_scan_filter_chain");
-  
+
   ScanToScanFilterChain t;
   ros::spin();
+#else
+  rclcpp::init(argc, argv);
+  auto nh = rclcpp::Node::make_shared("scan_to_scan_filter_chain");
+  ScanToScanFilterChain t;
+
+  rclcpp::spin(nh);
+#endif // !ROS2
   
   return 0;
 }

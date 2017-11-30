@@ -41,9 +41,23 @@
 
 
 #include "filters/filter_base.h"
-#include "sensor_msgs/LaserScan.h"
+
+#ifndef ROS2
+#include <sensor_msgs/LaserScan.h>
+typedef sensor_msgs::LaserScan LaserScane;
 
 #include <XmlRpcException.h>
+
+#else
+#include <sensor_msgs/msg/Laser_Scan.hpp>
+typedef sensor_msgs::msg::LaserScan LaserScan;
+
+#define ROS_INFO(...)
+#define ROS_WARN(...)
+
+#include <xmlrpcpp/XmlRpcException.h>
+
+#endif // !ROS2
 
 #include <limits>
 #include <map>
@@ -53,7 +67,7 @@
 namespace laser_filters
 {
 
-class LaserScanMaskFilter : public filters::FilterBase<sensor_msgs::LaserScan>
+class LaserScanMaskFilter : public filters::FilterBase<LaserScan>
 {
 public:
   std::map<std::string, std::vector<size_t> > masks_;
@@ -102,7 +116,7 @@ public:
   {
   }
 
-  bool update(const sensor_msgs::LaserScan& data_in, sensor_msgs::LaserScan& data_out)
+  bool update(const LaserScan& data_in, LaserScan& data_out)
   {
     data_out = data_in;
     if (masks_.find(data_out.header.frame_id) == masks_.end())

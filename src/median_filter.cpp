@@ -63,7 +63,7 @@ LaserMedianFilter::~LaserMedianFilter()
   delete intensity_filter_;
 };
 
-bool LaserMedianFilter::update(const sensor_msgs::LaserScan& scan_in, sensor_msgs::LaserScan& scan_out)
+bool LaserMedianFilter::update(const LaserScan& scan_in, LaserScan& scan_out)
 {
   if (!this->configured_) 
   {

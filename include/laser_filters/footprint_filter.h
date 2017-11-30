@@ -43,19 +43,48 @@ This is useful for ground plane extraction
 
 
 #include "filters/filter_base.h"
-#include "sensor_msgs/LaserScan.h"
-#include "tf/transform_listener.h"
-#include "sensor_msgs/PointCloud.h"
+
+#ifndef ROS2
+#include <tf/transform_datatypes.h>
+#include <tf/transform_listener.h>
+#include <sensor_msgs/LaserScan.h>
+#include <sensor_msgs/PointCloud.h>
+
+typedef geometry_msgs::Point32 Point32;
+typedef sensor_msgs::LaserScan LaserScan;
+typedef sensor_msgs::PointCloud PointCloud;
+typedef tf::TransformListener TransformListener;
+typedef tf::TransformException TransformException;
+
 #include "ros/ros.h"
+#else
+#include <tf2/transform_datatypes.h>
+#include <tf2_ros/transform_listener.h>
+#include <sensor_msgs/msg/Laser_Scan.hpp>
+#include <sensor_msgs/msg/Point_Cloud.hpp>
+#include <geometry_msgs/msg/Point32.hpp>
+
+typedef geometry_msgs::msg::Point32 Point32;
+typedef sensor_msgs::msg::LaserScan LaserScan;
+typedef sensor_msgs::msg::PointCloud PointCloud;
+typedef tf2_ros::TransformListener TransformListener;
+typedef tf2::TransformException TransformException;
+
+#define ROS_WARN(...)
+#define ROS_WARN_THROTTLE(...)
+#define ROS_INFO_THROTTLE(...)
+
+#endif // !ROS2
+
 #include "laser_geometry/laser_geometry.h"
 
 namespace laser_filters
 {
 
-class LaserScanFootprintFilter : public filters::FilterBase<sensor_msgs::LaserScan>
+class LaserScanFootprintFilter : public filters::FilterBase<LaserScan>
 {
 public:
-  LaserScanFootprintFilter(): up_and_running_(false) {}
+  LaserScanFootprintFilter(): tf_(buffer_), up_and_running_(false) {}
 
   bool configure()
   {
@@ -72,15 +101,15 @@ public:
 
   }
 
-  bool update(const sensor_msgs::LaserScan& input_scan, sensor_msgs::LaserScan& filtered_scan)
+  bool update(const LaserScan& input_scan, LaserScan& filtered_scan)
   {
     filtered_scan = input_scan ;
-    sensor_msgs::PointCloud laser_cloud;
+    PointCloud laser_cloud;
 
     try{
-      projector_.transformLaserScanToPointCloud("base_link", input_scan, laser_cloud, tf_);
+      projector_.transformLaserScanToPointCloud("base_link", input_scan, laser_cloud, buffer_);
     }
-    catch(tf::TransformException& ex){
+    catch(TransformException& ex){
       if(up_and_running_){
         ROS_WARN_THROTTLE(1, "Dropping Scan: Transform unavailable %s", ex.what());
       }
@@ -109,7 +138,7 @@ public:
     return true;
   }
 
-  int indexChannel(const sensor_msgs::PointCloud& scan_cloud){
+  int indexChannel(const PointCloud& scan_cloud){
       int c_idx = -1;
       for (unsigned int d = 0; d < scan_cloud.channels.size (); d++)
       {
@@ -122,14 +151,15 @@ public:
       return c_idx;
   }
 
-  bool inFootprint(const geometry_msgs::Point32& scan_pt){
+  bool inFootprint(const Point32& scan_pt){
     if(scan_pt.x < -1.0 * inscribed_radius_ || scan_pt.x > inscribed_radius_ || scan_pt.y < -1.0 * inscribed_radius_ || scan_pt.y > inscribed_radius_)
       return false;
     return true;
   }
 
 private:
-  tf::TransformListener tf_;
+  TransformListener tf_;
+  tf2_ros::Buffer buffer_;
   laser_geometry::LaserProjection projector_;
   double inscribed_radius_;
   bool up_and_running_;
