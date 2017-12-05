@@ -66,6 +66,21 @@ set(${PROJECT_NAME}_LIBRARIES
 )
 endif()
 if(NOT __BUILD_WITHOUT_LIBS)
+if(CMAKE_BUILD_TYPE MATCHES Debug)
+set(BOOST_DEPENDENCIES
+  $ENV{BOOST_LIBRARYDIR}/libboost_date_time-vc140-mt-gd-1_61.lib
+  $ENV{BOOST_LIBRARYDIR}/libboost_thread-vc140-mt-gd-1_61.lib
+  $ENV{BOOST_LIBRARYDIR}/libboost_system-vc140-mt-gd-1_61.lib
+  $ENV{BOOST_LIBRARYDIR}/libboost_chrono-vc140-mt-gd-1_61.lib
+)
+else()
+set(BOOST_DEPENDENCIES
+  $ENV{BOOST_LIBRARYDIR}/libboost_date_time-vc140-mt-1_61.lib
+  $ENV{BOOST_LIBRARYDIR}/libboost_thread-vc140-mt-1_61.lib
+  $ENV{BOOST_LIBRARYDIR}/libboost_system-vc140-mt-1_61.lib
+  $ENV{BOOST_LIBRARYDIR}/libboost_chrono-vc140-mt-1_61.lib
+)
+endif()
 set(${PROJECT_NAME}_LIBRARIES 
   ${class_loader_LIBRARIES}
   ${sensor_msgs_LIBRARIES}
@@ -78,10 +93,7 @@ set(${PROJECT_NAME}_LIBRARIES
   ${angles_LIBRARIES}
   ${xmlrpcpp_LIBRARIES}
   ${rostime_LIBRARIES}
-  $ENV{BOOST_LIBRARYDIR}/libboost_thread-vc140-mt-1_61.lib
-  $ENV{BOOST_LIBRARYDIR}/libboost_date_time-vc140-mt-1_61.lib
-  $ENV{BOOST_LIBRARYDIR}/libboost_system-vc140-mt-1_61.lib
-  $ENV{BOOST_LIBRARYDIR}/libboost_chrono-vc140-mt-1_61.lib
+  ${BOOST_DEPENDENCIES}
 )
 endif()
 
