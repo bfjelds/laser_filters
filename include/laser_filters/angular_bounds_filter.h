@@ -48,9 +48,6 @@ typedef ros::Time Time;
 typedef sensor_msgs::msg::LaserScan LaserScan;
 typedef builtin_interfaces::msg::Time Time;
 
-#define ROS_INFO(...)
-#define ROS_WARN(...)
-
 #endif // !ROS2
 
 namespace laser_filters

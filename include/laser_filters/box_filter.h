@@ -72,7 +72,6 @@ typedef tf2::TransformException TransformException;
 typedef tf2::Vector3 Point;
 
 
-#define ROS_WARN(...)
 #define ROS_WARN_THROTTLE(...)
 #define ROS_INFO_THROTTLE(...)
 

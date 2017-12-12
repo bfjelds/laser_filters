@@ -70,10 +70,6 @@ typedef sensor_msgs::msg::PointCloud PointCloud;
 typedef tf2_ros::TransformListener TransformListener;
 typedef tf2::TransformException TransformException;
 
-#define ROS_WARN(...)
-#define ROS_WARN_THROTTLE(...)
-#define ROS_INFO_THROTTLE(...)
-
 #endif // !ROS2
 
 #include "laser_geometry/laser_geometry.h"

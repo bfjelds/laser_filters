@@ -52,9 +52,6 @@ typedef sensor_msgs::LaserScan LaserScane;
 #include <sensor_msgs/msg/Laser_Scan.hpp>
 typedef sensor_msgs::msg::LaserScan LaserScan;
 
-#define ROS_INFO(...)
-#define ROS_WARN(...)
-
 #include <xmlrpcpp/XmlRpcException.h>
 
 #endif // !ROS2

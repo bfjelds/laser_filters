@@ -17,6 +17,7 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 
+find_package(pluginlib REQUIRED)
 find_package(class_loader REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -29,9 +30,32 @@ find_package(angles REQUIRED)
 find_package(xmlrpcpp REQUIRED)
 find_package(rostime REQUIRED)
 
-#find_package(Boost REQUIRED COMPONENTS system signals)
+set(Boost_USE_STATIC_LIBS ON)
+find_package(Boost REQUIRED COMPONENTS system signals thread filesystem)
+
+#set(Boost_INCLUDE_DIRS $ENV{BOOST_ROOT})
+#if(CMAKE_BUILD_TYPE MATCHES Debug)
+#set(Boost_LIBRARIES
+#  $ENV{BOOST_LIBRARYDIR}/libboost_date_time-vc140-mt-gd-1_61.lib
+#  $ENV{BOOST_LIBRARYDIR}/libboost_thread-vc140-mt-gd-1_61.lib
+#  $ENV{BOOST_LIBRARYDIR}/libboost_system-vc140-mt-gd-1_61.lib
+#  $ENV{BOOST_LIBRARYDIR}/libboost_chrono-vc140-mt-gd-1_61.lib
+#  $ENV{BOOST_LIBRARYDIR}/libboost_filesystem-vc140-mt-gd-1_61.lib
+#)
+#else()
+#set(Boost_LIBRARIES
+#  $ENV{BOOST_LIBRARYDIR}/libboost_date_time-vc140-mt-1_61.lib
+#  $ENV{BOOST_LIBRARYDIR}/libboost_thread-vc140-mt-1_61.lib
+#  $ENV{BOOST_LIBRARYDIR}/libboost_system-vc140-mt-1_61.lib
+#  $ENV{BOOST_LIBRARYDIR}/libboost_chrono-vc140-mt-1_61.lib
+#  $ENV{BOOST_LIBRARYDIR}/libboost_filesystem-vc140-mt-1_61.lib
+#)
+#endif()
+
+find_package(TinyXML REQUIRED HINTS "*.lib") # add hint seems to allow debug lib to be found when appropriate
 
 include_directories(include 
+  ${pluginlib_INCLUDE_DIRS}
   ${class_loader_INCLUDE_DIRS}
   ${sensor_msgs_INCLUDE_DIRS}
   ${rclcpp_INCLUDE_DIRS}
@@ -43,15 +67,29 @@ include_directories(include
   ${angles_INCLUDE_DIRS}
   ${xmlrpcpp_INCLUDE_DIRS}
   ${rostime_INCLUDE_DIRS}
-  $ENV{BOOST_ROOT}
+  ${TinyXML_INCLUDE_DIRS}
+  ${Boost_INCLUDE_DIRS}
+)
+
+link_directories(
+  ${pluginlib_LIBRARY_DIRS}
+  ${class_loader_LIBRARY_DIRS}
+  ${sensor_msgs_LIBRARY_DIRS}
+  ${rclcpp_LIBRARY_DIRS}
+  ${tf2_LIBRARY_DIRS}
+  ${filters_LIBRARY_DIRS}
+  ${message_filters_LIBRARY_DIRS}
+  ${tf2_ros_LIBRARY_DIRS}
+  ${laser_geometry_LIBRARY_DIRS}
+  ${angles_LIBRARY_DIRS}
+  ${xmlrpcpp_LIBRARY_DIRS}
+  ${rostime_LIBRARY_DIRS}
 )
 
 add_definitions(-DROS2)
 
-#set(__BUILD_WITHOUT_LIBS 1)
-if(__BUILD_WITHOUT_LIBS)
-add_definitions(-DBOOST_ALL_NO_LIB)
 set(${PROJECT_NAME}_LIBRARIES 
+  ${pluginlib_LIBRARIES}
   ${class_loader_LIBRARIES}
   ${sensor_msgs_LIBRARIES}
   ${rclcpp_LIBRARIES}
@@ -63,39 +101,14 @@ set(${PROJECT_NAME}_LIBRARIES
   ${angles_LIBRARIES}
   ${xmlrpcpp_LIBRARIES}
   ${rostime_LIBRARIES}
+  ${Boost_LIBRARIES}
 )
-endif()
-if(NOT __BUILD_WITHOUT_LIBS)
-if(CMAKE_BUILD_TYPE MATCHES Debug)
-set(BOOST_DEPENDENCIES
-  $ENV{BOOST_LIBRARYDIR}/libboost_date_time-vc140-mt-gd-1_61.lib
-  $ENV{BOOST_LIBRARYDIR}/libboost_thread-vc140-mt-gd-1_61.lib
-  $ENV{BOOST_LIBRARYDIR}/libboost_system-vc140-mt-gd-1_61.lib
-  $ENV{BOOST_LIBRARYDIR}/libboost_chrono-vc140-mt-gd-1_61.lib
-)
-else()
-set(BOOST_DEPENDENCIES
-  $ENV{BOOST_LIBRARYDIR}/libboost_date_time-vc140-mt-1_61.lib
-  $ENV{BOOST_LIBRARYDIR}/libboost_thread-vc140-mt-1_61.lib
-  $ENV{BOOST_LIBRARYDIR}/libboost_system-vc140-mt-1_61.lib
-  $ENV{BOOST_LIBRARYDIR}/libboost_chrono-vc140-mt-1_61.lib
-)
-endif()
-set(${PROJECT_NAME}_LIBRARIES 
-  ${class_loader_LIBRARIES}
-  ${sensor_msgs_LIBRARIES}
-  ${rclcpp_LIBRARIES}
-  ${tf2_LIBRARIES}
-  ${filters_LIBRARIES}
-  ${message_filters_LIBRARIES}
-  ${tf2_ros_LIBRARIES}
-  ${laser_geometry_LIBRARIES}
-  ${angles_LIBRARIES}
-  ${xmlrpcpp_LIBRARIES}
-  ${rostime_LIBRARIES}
-  ${BOOST_DEPENDENCIES}
-)
-endif()
+
+message("...")
+message("...")
+message("${Boost_LIBRARIES}")
+message("...")
+message("...")
 
 ##############################################################################
 # Build

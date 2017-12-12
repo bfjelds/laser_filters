@@ -63,8 +63,6 @@ typedef sensor_msgs::msg::PointCloud PointCloud;
 typedef tf2_ros::TransformListener TransformListener;
 typedef tf2::TransformException TransformException;
 
-#define ROS_WARN(...)
-
 #endif // !ROS2
 
 namespace laser_filters

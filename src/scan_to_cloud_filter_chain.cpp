@@ -34,23 +34,6 @@
 
  */
 
-#ifndef ROS2
-#include <ros/ros.h>
-#include <sensor_msgs/PointCloud2.h>
-#include <sensor_msgs/LaserScan.h>
-
-typedef sensor_msgs::PointCloud2 PointCloud2;
-typedef sensor_msgs::LaserScan LaserScane;
-
-// TF
-#include <tf/transform_listener.h>
-#include "tf/message_filter.h"
-#include "message_filters/subscriber.h"
-
-typedef tf::TransformException TransformException;
-typedef tf::TransformListener TransformListener;
-
-#else
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/Point_Cloud2.hpp>
 #include <sensor_msgs/msg/Laser_Scan.hpp>
@@ -70,8 +53,6 @@ typedef tf2_ros::TransformListener TransformListener;
 #define NO_TIMER
 
 #define ROS_WARN(...)
-
-#endif // !ROS2
 
 
 #include <float.h>
@@ -98,33 +79,19 @@ public:
   std::string target_frame_;                   // Target frame for high fidelity result
   std::string scan_topic_, cloud_topic_;
 
-#ifndef ROS2
-  ros::NodeHandle nh;
-  ros::NodeHandle private_nh;
-#else
   rclcpp::Node::SharedPtr nh;
-  rclcpp::Node::SharedPtr private_nh;
-#endif // !ROS2
 
   // TF
   TransformListener tf_;
   tf2_ros::Buffer buffer_;
 
   message_filters::Subscriber<LaserScan> sub_;
-#ifndef ROS2
-  tf2::MessageFilter<LaserScan> filter_;
-#else
   tf2_ros::MessageFilter<LaserScan> filter_;
-#endif // !ROS2
 
   double tf_tolerance_;
   filters::FilterChain<PointCloud2> cloud_filter_chain_;
   filters::FilterChain<LaserScan> scan_filter_chain_;
-#ifndef ROS2
-  ros::Publisher cloud_pub_;
-#else
   rclcpp::Publisher<PointCloud2>::SharedPtr cloud_pub_;
-#endif // !ROS2
 
   // Timer for displaying deprecation warnings
 #ifndef NO_TIMER
@@ -142,88 +109,45 @@ public:
   bool  incident_angle_correction_;
 
   ////////////////////////////////////////////////////////////////////////////////
-  ScanToCloudFilterChain () : laser_max_range_ (DBL_MAX),
-                   nh(rclcpp::Node::make_shared("scan_to_cloud_filter_chain")),
-                   private_nh(rclcpp::Node::make_shared("~")),
+  ScanToCloudFilterChain(rclcpp::Node::SharedPtr node) :
+                   nh(node),
+                   laser_max_range_ (DBL_MAX),
                    sub_(nh, "scan", 50),
                    tf_(buffer_),
                    filter_(sub_, buffer_, "", 50),
                    cloud_filter_chain_("sensor_msgs::msg::PointCloud2"), 
                    scan_filter_chain_("sensor_msgs::msg::LaserScan")
   {
-#ifndef ROS2
-    private_nh = ros::NodeHandle("~");
-    filter_ = tf2::MessageFilter<LaserScan>(tf_, "", 50)
-
-    private_nh.param("high_fidelity", high_fidelity_, false);
-    private_nh.param("notifier_tolerance", tf_tolerance_, 0.03);
-    private_nh.param("target_frame", target_frame_, std::string("base_link"));
-
-    // DEPRECATED with default value
-    using_default_target_frame_deprecated_ = !private_nh.hasParam("target_frame");
-
-    // DEPRECATED
-    using_scan_topic_deprecated_ = private_nh.hasParam("scan_topic");
-    using_cloud_topic_deprecated_ = private_nh.hasParam("cloud_topic");
-    using_laser_max_range_deprecated_ = private_nh.hasParam("laser_max_range");
-    using_filter_window_deprecated_ = private_nh.hasParam("filter_window");
-    using_cloud_filters_deprecated_ = private_nh.hasParam("cloud_filters/filter_chain");
-    using_scan_filters_deprecated_ = private_nh.hasParam("scan_filters/filter_chain");
-    using_cloud_filters_wrong_deprecated_ = private_nh.hasParam("cloud_filters/cloud_filter_chain");
-    using_scan_filters_wrong_deprecated_ = private_nh.hasParam("scan_filters/scan_filter_chain");
-
-
-    private_nh.param("filter_window", window_, 2);
-    private_nh.param("laser_max_range", laser_max_range_, DBL_MAX);
-    private_nh.param("scan_topic", scan_topic_, std::string("tilt_scan"));
-    private_nh.param("cloud_topic", cloud_topic_, std::string("tilt_laser_cloud_filtered"));
-    private_nh.param("incident_angle_correction", incident_angle_correction_, true);
-#else
-    private_nh->get_parameter_or("high_fidelity", high_fidelity_, false);
-    private_nh->get_parameter_or("notifier_tolerance", tf_tolerance_, 0.03);
-    private_nh->get_parameter_or("target_frame", target_frame_, std::string("base_link"));
+    nh->get_parameter_or("high_fidelity", high_fidelity_, false);
+    nh->get_parameter_or("notifier_tolerance", tf_tolerance_, 0.03);
+    nh->get_parameter_or("target_frame", target_frame_, std::string("base_link"));
 
     rclcpp::parameter::ParameterVariant variant;
 
     // DEPRECATED with default value
-    using_default_target_frame_deprecated_ = !private_nh->get_parameter("target_frame", variant);
+    using_default_target_frame_deprecated_ = !nh->get_parameter("target_frame", variant);
 
     // DEPRECATED
-    using_scan_topic_deprecated_ = private_nh->get_parameter("scan_topic", variant);
-    using_cloud_topic_deprecated_ = private_nh->get_parameter("cloud_topic", variant);
-    using_laser_max_range_deprecated_ = private_nh->get_parameter("laser_max_range", variant);
-    using_filter_window_deprecated_ = private_nh->get_parameter("filter_window", variant);
-    using_cloud_filters_deprecated_ = private_nh->get_parameter("cloud_filters/filter_chain", variant);
-    using_scan_filters_deprecated_ = private_nh->get_parameter("scan_filters/filter_chain", variant);
-    using_cloud_filters_wrong_deprecated_ = private_nh->get_parameter("cloud_filters/cloud_filter_chain", variant);
-    using_scan_filters_wrong_deprecated_ = private_nh->get_parameter("scan_filters/scan_filter_chain", variant);
+    using_scan_topic_deprecated_ = nh->get_parameter("scan_topic", variant);
+    using_cloud_topic_deprecated_ = nh->get_parameter("cloud_topic", variant);
+    using_laser_max_range_deprecated_ = nh->get_parameter("laser_max_range", variant);
+    using_filter_window_deprecated_ = nh->get_parameter("filter_window", variant);
+    using_cloud_filters_deprecated_ = nh->get_parameter("cloud_filters/filter_chain", variant);
+    using_scan_filters_deprecated_ = nh->get_parameter("scan_filters/filter_chain", variant);
+    using_cloud_filters_wrong_deprecated_ = nh->get_parameter("cloud_filters/cloud_filter_chain", variant);
+    using_scan_filters_wrong_deprecated_ = nh->get_parameter("scan_filters/scan_filter_chain", variant);
 
 
-    private_nh->get_parameter_or("filter_window", window_, 2);
-    private_nh->get_parameter_or("laser_max_range", laser_max_range_, DBL_MAX);
-    private_nh->get_parameter_or("scan_topic", scan_topic_, std::string("tilt_scan"));
-    private_nh->get_parameter_or("cloud_topic", cloud_topic_, std::string("tilt_laser_cloud_filtered"));
-    private_nh->get_parameter_or("incident_angle_correction", incident_angle_correction_, true);
-#endif // !ROS2
-
+    nh->get_parameter_or("filter_window", window_, 2);
+    nh->get_parameter_or("laser_max_range", laser_max_range_, DBL_MAX);
+    nh->get_parameter_or("scan_topic", scan_topic_, std::string("tilt_scan"));
+    nh->get_parameter_or("cloud_topic", cloud_topic_, std::string("tilt_laser_cloud_filtered"));
+    nh->get_parameter_or("incident_angle_correction", incident_angle_correction_, true);
 
     filter_.setTargetFrame(target_frame_);
-    filter_.registerCallback(boost::bind(&ScanToCloudFilterChain::scanCallback, this, _1));
+    filter_.registerCallback(std::bind(&ScanToCloudFilterChain::scanCallback, this, std::placeholders::_1));
     filter_.setTolerance(tf2::Duration(ros::Duration(tf_tolerance_).toNSec()));
 
-#ifndef ROS2
-    if (using_scan_topic_deprecated_)
-      sub_.subscribe(nh, scan_topic_, 50);
-    else
-      sub_.subscribe(nh, "scan", 50);
-
-    filter_.connectInput(sub_);
-
-    if (using_cloud_topic_deprecated_)
-      cloud_pub_ = nh.advertise<PointCloud2> (cloud_topic_, 10);
-    else
-      cloud_pub_ = nh.advertise<PointCloud2> ("cloud_filtered", 10);
-#else
     if (using_scan_topic_deprecated_)
       sub_.subscribe(nh, scan_topic_, 50);
     else
@@ -235,23 +159,22 @@ public:
       cloud_pub_ = nh->create_publisher<PointCloud2>(cloud_topic_, 10);
     else
       cloud_pub_ = nh->create_publisher<PointCloud2>("cloud_filtered", 10);
-#endif // !ROS2
 
     std::string cloud_filter_xml;
 
     if (using_cloud_filters_deprecated_)
-      cloud_filter_chain_.configure("cloud_filters/filter_chain"/*, private_nh*/);
+      cloud_filter_chain_.configure("cloud_filters/filter_chain", nh);
     else if (using_cloud_filters_wrong_deprecated_)
-      cloud_filter_chain_.configure("cloud_filters/cloud_filter_chain"/*, private_nh*/);
+      cloud_filter_chain_.configure("cloud_filters/cloud_filter_chain", nh);
     else
-      cloud_filter_chain_.configure("cloud_filter_chain"/*, private_nh*/);
+      cloud_filter_chain_.configure("cloud_filter_chain", nh);
 
     if (using_scan_filters_deprecated_)
-      scan_filter_chain_.configure("scan_filter/filter_chain"/*, private_nh*/);
+      scan_filter_chain_.configure("scan_filter/filter_chain", nh);
     else if (using_scan_filters_wrong_deprecated_)
-      scan_filter_chain_.configure("scan_filters/scan_filter_chain"/*, private_nh*/);
+      scan_filter_chain_.configure("scan_filters/scan_filter_chain", nh);
     else
-      scan_filter_chain_.configure("scan_filter_chain"/*, private_nh*/);
+      scan_filter_chain_.configure("scan_filter_chain", nh);
 
 #ifndef NO_TIMER
     deprecation_timer_ = nh.createTimer(ros::Duration(5.0), boost::bind(&ScanToCloudFilterChain::deprecation_warn, this, _1));
@@ -294,7 +217,7 @@ public:
 
   ////////////////////////////////////////////////////////////////////////////////
   void
-  scanCallback (const boost::shared_ptr<const LaserScan>& scan_msg)
+  scanCallback (const std::shared_ptr<const LaserScan>& scan_msg)
   {
     //    LaserScan scan_msg = *scan_in;
 
@@ -352,19 +275,18 @@ public:
 int
 main (int argc, char** argv)
 {
-#ifndef ROS2
-  ros::init (argc, argv, "scan_to_cloud_filter_chain");
-  ros::NodeHandle nh;
-  ScanToCloudFilterChain f;
-
-  ros::spin();
-#else
   rclcpp::init(argc, argv);
   auto nh = rclcpp::Node::make_shared("scan_to_cloud_filter_chain");
-  ScanToCloudFilterChain f;
+  ScanToCloudFilterChain f(nh);
 
-  rclcpp::spin(nh);
-#endif // !ROS2
+  rclcpp::WallRate loop_rate(200);
+  while (rclcpp::ok()) {
+
+    rclcpp::spin_some(nh);
+    loop_rate.sleep();
+
+  }
+
   return (0);
 }
 

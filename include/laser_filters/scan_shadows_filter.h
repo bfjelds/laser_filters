@@ -50,9 +50,6 @@ typedef sensor_msgs::LaserScan LaserScan;
 #include <sensor_msgs/msg/Laser_Scan.hpp>
 typedef sensor_msgs::msg::LaserScan LaserScan;
 
-#define ROS_INFO(...)
-#define ROS_WARN(...)
-
 #define _USE_MATH_DEFINES // for C  
 #include <math.h>  
 

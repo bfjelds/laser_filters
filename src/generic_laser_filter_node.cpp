@@ -28,21 +28,6 @@
  */
 
 
-#ifndef ROS2
-#include "ros/ros.h"
-#include "sensor_msgs/LaserScan.h"
-
-typedef sensor_msgs::LaserScan LaserScane;
-
-// TF
-#include <tf/transform_listener.h>
-#include "tf/message_filter.h"
-#include "message_filters/subscriber.h"
-
-typedef tf::TransformException TransformException;
-typedef tf::TransformListener TransformListener;
-
-#else
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/Laser_Scan.hpp>
 
@@ -57,8 +42,6 @@ typedef tf2_ros::TransformListener TransformListener;
 
 #define NO_TIMER
 
-#endif // !ROS2
-
 #include "message_filters/subscriber.h"
 #include "filters/filter_chain.h"
 
@@ -66,56 +49,56 @@ class GenericLaserScanFilterNode
 {
 protected:
   // Our NodeHandle
-#ifndef ROS2
-  ros::NodeHandle nh_;
-#else
   rclcpp::Node::SharedPtr nh_;
-#endif // !ROS2
 
   // Components for tf::MessageFilter
   TransformListener tf_;
   tf2_ros::Buffer buffer_;
 
   message_filters::Subscriber<LaserScan> scan_sub_;
-#ifndef ROS2
-  tf::MessageFilter<LaserScan> tf_filter_;
-#else
   tf2_ros::MessageFilter<LaserScan> tf_filter_;
-#endif // !ROS2
 
   // Filter Chain
   filters::FilterChain<LaserScan> filter_chain_;
 
   // Components for publishing
   LaserScan msg_;
-#ifndef ROS2
-  ros::Publisher output_pub_;
-#else
   rclcpp::Publisher<LaserScan>::SharedPtr output_pub_;
-#endif // !ROS2
 
 #ifndef NO_TIMER
   ros::Timer deprecation_timer_;
 #endif // !NO_TIMER
 
+private:
+  void foo(const LaserScan::SharedPtr msg)
+  {
+
+  }
+
 public:
   // Constructor
-  GenericLaserScanFilterNode() :
-    nh_(rclcpp::Node::make_shared("generic_laser_filter")),
-    scan_sub_(nh_, "scan_in", 50),
+  GenericLaserScanFilterNode(rclcpp::Node::SharedPtr nh) :
+    nh_(nh),
+    scan_sub_(nh_, "scan", 50),
     tf_(buffer_),
-    tf_filter_(scan_sub_, buffer_, "base_link", 50),
+    tf_filter_(scan_sub_, buffer_, "laser_frame", 50),
     filter_chain_("LaserScan")
   {
+    ros::Time::init();
+
     // Configure filter chain
-    filter_chain_.configure("");
+    filter_chain_.configure(nh_);
     
     // Setup tf::MessageFilter for input
-    tf_filter_.registerCallback(boost::bind(&GenericLaserScanFilterNode::callback, this, _1));
+    tf_filter_.registerCallback(std::bind(&GenericLaserScanFilterNode::callback, this, std::placeholders::_1));
     tf_filter_.setTolerance(tf2::Duration(ros::Duration(0.03).toNSec()));
     
     // Advertise output
     output_pub_ = nh_->create_publisher<LaserScan>("output", 1000);
+
+    std::function<void(const LaserScan::SharedPtr)> standard_callback =
+      std::bind(&GenericLaserScanFilterNode::foo, this, std::placeholders::_1);
+    nh_->create_subscription<LaserScan>("scan", standard_callback, rmw_qos_profile_default);
 
 #ifndef NO_TIMER
     deprecation_timer_ = nh_.createTimer(ros::Duration(5.0), boost::bind(&GenericLaserScanFilterNode::deprecation_warn, this, _1));
@@ -130,7 +113,7 @@ public:
 #endif // !NO_TIMER
 
   // Callback
-  void callback(const boost::shared_ptr<const LaserScan>& msg_in)
+  void callback(const std::shared_ptr<const LaserScan>& msg_in)
   {
     // Run the filter chain
     filter_chain_.update (*msg_in, msg_);
@@ -142,18 +125,17 @@ public:
 
 int main(int argc, char **argv)
 {
-#ifndef ROS2
-  ros::init(argc, argv, "scan_filter_node");
-
-  GenericLaserScanFilterNode t;
-  ros::spin();
-#else
   rclcpp::init(argc, argv);
   auto nh = rclcpp::Node::make_shared("scan_filter_node");
-  GenericLaserScanFilterNode t;
+  GenericLaserScanFilterNode t(nh);
 
-  rclcpp::spin(nh);
-#endif // !ROS2
-  
+  rclcpp::WallRate loop_rate(200);
+  while (rclcpp::ok()) {
+
+    rclcpp::spin_some(nh);
+    loop_rate.sleep();
+
+  }
+
   return 0;
 }
