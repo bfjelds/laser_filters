@@ -38,20 +38,14 @@
 #include <sensor_msgs/msg/Point_Cloud2.hpp>
 #include <sensor_msgs/msg/Laser_Scan.hpp>
 
-typedef sensor_msgs::msg::PointCloud2 PointCloud2;
-typedef sensor_msgs::msg::LaserScan LaserScan;
-
 // TF
 #include <tf2_ros/transform_listener.h>
 #include "tf2_ros/message_filter.h"
 
-typedef tf2::TransformException TransformException;
-typedef tf2_ros::TransformListener TransformListener;
-
 #include "message_filters/subscriber.h"
 
+//TODO: Fix this
 #define NO_TIMER
-
 #define ROS_WARN(...)
 
 
@@ -82,16 +76,16 @@ public:
   rclcpp::Node::SharedPtr nh;
 
   // TF
-  TransformListener tf_;
+  tf2_ros::TransformListener tf_;
   tf2_ros::Buffer buffer_;
 
-  message_filters::Subscriber<LaserScan> sub_;
-  tf2_ros::MessageFilter<LaserScan> filter_;
+  message_filters::Subscriber<sensor_msgs::msg::LaserScan> sub_;
+  tf2_ros::MessageFilter<sensor_msgs::msg::LaserScan> filter_;
 
   double tf_tolerance_;
-  filters::FilterChain<PointCloud2> cloud_filter_chain_;
-  filters::FilterChain<LaserScan> scan_filter_chain_;
-  rclcpp::Publisher<PointCloud2>::SharedPtr cloud_pub_;
+  filters::FilterChain<sensor_msgs::msg::PointCloud2> cloud_filter_chain_;
+  filters::FilterChain<sensor_msgs::msg::LaserScan> scan_filter_chain_;
+  rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr cloud_pub_;
 
   // Timer for displaying deprecation warnings
 #ifndef NO_TIMER
@@ -156,9 +150,9 @@ public:
     filter_.connectInput(sub_);
 
     if (using_cloud_topic_deprecated_)
-      cloud_pub_ = nh->create_publisher<PointCloud2>(cloud_topic_, 10);
+      cloud_pub_ = nh->create_publisher<sensor_msgs::msg::PointCloud2>(cloud_topic_, 10);
     else
-      cloud_pub_ = nh->create_publisher<PointCloud2>("cloud_filtered", 10);
+      cloud_pub_ = nh->create_publisher<sensor_msgs::msg::PointCloud2>("cloud_filtered", 10);
 
     std::string cloud_filter_xml;
 
@@ -217,15 +211,15 @@ public:
 
   ////////////////////////////////////////////////////////////////////////////////
   void
-  scanCallback (const std::shared_ptr<const LaserScan>& scan_msg)
+  scanCallback (const std::shared_ptr<const sensor_msgs::msg::LaserScan>& scan_msg)
   {
-    //    LaserScan scan_msg = *scan_in;
+    //    sensor_msgs::msg::LaserScan scan_msg = *scan_in;
 
-    LaserScan filtered_scan;
+    sensor_msgs::msg::LaserScan filtered_scan;
     scan_filter_chain_.update (*scan_msg, filtered_scan);
 
     // Project laser into point cloud
-    PointCloud2 scan_cloud;
+    sensor_msgs::msg::PointCloud2 scan_cloud;
 
     //\TODO CLEAN UP HACK 
     // This is a trial at correcting for incident angles.  It makes many assumptions that do not generalise
@@ -250,7 +244,7 @@ public:
       {
         projector_.transformLaserScanToPointCloud(target_frame_, filtered_scan, scan_cloud, buffer_, mask);
       }
-      catch (TransformException &ex)
+      catch (tf2::TransformException &ex)
       {
         ROS_WARN("High fidelity enabled, but TF returned a transform exception to frame %s: %s", target_frame_.c_str (), ex.what ());
         return;
@@ -262,7 +256,7 @@ public:
       projector_.transformLaserScanToPointCloud(target_frame_, filtered_scan, scan_cloud, buffer_, laser_max_range_, mask);
     }
       
-    PointCloud2 filtered_cloud;
+    sensor_msgs::msg::PointCloud2 filtered_cloud;
     cloud_filter_chain_.update (scan_cloud, filtered_cloud);
 
     cloud_pub_->publish(filtered_cloud);

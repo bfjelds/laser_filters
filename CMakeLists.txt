@@ -129,6 +129,7 @@ target_link_libraries(scan_to_scan_filter_chain ${${PROJECT_NAME}_LIBRARIES})
 add_executable(generic_laser_filter_node src/generic_laser_filter_node.cpp)
 target_link_libraries(generic_laser_filter_node ${${PROJECT_NAME}_LIBRARIES})
 
+pluginlib_export_plugin_description_file(laser_filters laser_filters_plugins.xml)
 ament_export_include_directories(include)
 ament_export_libraries(
   pointcloud_filters 

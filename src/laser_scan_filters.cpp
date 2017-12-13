@@ -38,27 +38,21 @@
 #include "laser_filters/angular_bounds_filter.h"
 #include "laser_filters/angular_bounds_filter_in_place.h"
 #include "laser_filters/box_filter.h"
-#ifndef ROS2
-#include <sensor_msgs/LaserScan.h>
-typedef sensor_msgs::LaserScan LaserScane;
-#else
+
 #include <builtin_interfaces/msg/Time.hpp>
 #include <sensor_msgs/msg/Laser_Scan.hpp>
-typedef sensor_msgs::msg::LaserScan LaserScan;
-#endif // !ROS2
+
 #include "filters/filter_base.h"
-#include <class_loader/class_loader.h>
+#include <pluginlib/class_list_macros.hpp>  // NOLINT
 
-
-
-CLASS_LOADER_REGISTER_CLASS(laser_filters::LaserMedianFilter, filters::FilterBase<LaserScan>)
-CLASS_LOADER_REGISTER_CLASS(laser_filters::LaserArrayFilter, filters::FilterBase<LaserScan>)
-CLASS_LOADER_REGISTER_CLASS(laser_filters::LaserScanIntensityFilter, filters::FilterBase<LaserScan>)
-CLASS_LOADER_REGISTER_CLASS(laser_filters::LaserScanRangeFilter, filters::FilterBase<LaserScan>)
-CLASS_LOADER_REGISTER_CLASS(laser_filters::LaserScanAngularBoundsFilter, filters::FilterBase<LaserScan>)
-CLASS_LOADER_REGISTER_CLASS(laser_filters::LaserScanAngularBoundsFilterInPlace, filters::FilterBase<LaserScan>)
-CLASS_LOADER_REGISTER_CLASS(laser_filters::LaserScanFootprintFilter, filters::FilterBase<LaserScan>)
-CLASS_LOADER_REGISTER_CLASS(laser_filters::ScanShadowsFilter, filters::FilterBase<LaserScan>)
-CLASS_LOADER_REGISTER_CLASS(laser_filters::InterpolationFilter, filters::FilterBase<LaserScan>)
-CLASS_LOADER_REGISTER_CLASS(laser_filters::LaserScanBoxFilter, filters::FilterBase<LaserScan>)
-CLASS_LOADER_REGISTER_CLASS(laser_filters::LaserScanMaskFilter, filters::FilterBase<LaserScan>)
+PLUGINLIB_EXPORT_CLASS(laser_filters::LaserMedianFilter, filters::FilterBase<sensor_msgs::msg::LaserScan>)
+PLUGINLIB_EXPORT_CLASS(laser_filters::LaserArrayFilter, filters::FilterBase<sensor_msgs::msg::LaserScan>)
+PLUGINLIB_EXPORT_CLASS(laser_filters::LaserScanIntensityFilter, filters::FilterBase<sensor_msgs::msg::LaserScan>)
+PLUGINLIB_EXPORT_CLASS(laser_filters::LaserScanRangeFilter, filters::FilterBase<sensor_msgs::msg::LaserScan>)
+PLUGINLIB_EXPORT_CLASS(laser_filters::LaserScanAngularBoundsFilter, filters::FilterBase<sensor_msgs::msg::LaserScan>)
+PLUGINLIB_EXPORT_CLASS(laser_filters::LaserScanAngularBoundsFilterInPlace, filters::FilterBase<sensor_msgs::msg::LaserScan>)
+PLUGINLIB_EXPORT_CLASS(laser_filters::LaserScanFootprintFilter, filters::FilterBase<sensor_msgs::msg::LaserScan>)
+PLUGINLIB_EXPORT_CLASS(laser_filters::ScanShadowsFilter, filters::FilterBase<sensor_msgs::msg::LaserScan>)
+PLUGINLIB_EXPORT_CLASS(laser_filters::InterpolationFilter, filters::FilterBase<sensor_msgs::msg::LaserScan>)
+PLUGINLIB_EXPORT_CLASS(laser_filters::LaserScanBoxFilter, filters::FilterBase<sensor_msgs::msg::LaserScan>)
+PLUGINLIB_EXPORT_CLASS(laser_filters::LaserScanMaskFilter, filters::FilterBase<sensor_msgs::msg::LaserScan>)

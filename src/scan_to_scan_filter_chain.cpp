@@ -31,17 +31,13 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/Laser_Scan.hpp>
 
-typedef sensor_msgs::msg::LaserScan LaserScan;
-
 // TF
 #include <tf2_ros/transform_listener.h>
 #include "tf2_ros/message_filter.h"
 
-typedef tf2::TransformException TransformException;
-typedef tf2_ros::TransformListener TransformListener;
-
 #include "message_filters/subscriber.h"
 
+// TODO: fix this
 #define NO_TIMER
 
 #include "filters/filter_chain.h"
@@ -53,19 +49,19 @@ protected:
   rclcpp::Node::SharedPtr nh_;
 
   // Components for tf::MessageFilter
-  TransformListener tf_;
+  tf2_ros::TransformListener tf_;
   tf2_ros::Buffer buffer_;
 
-  message_filters::Subscriber<LaserScan> scan_sub_;
-  tf2_ros::MessageFilter<LaserScan> tf_filter_;
+  message_filters::Subscriber<sensor_msgs::msg::LaserScan> scan_sub_;
+  tf2_ros::MessageFilter<sensor_msgs::msg::LaserScan> tf_filter_;
   double tf_filter_tolerance_;
 
   // Filter Chain
-  filters::FilterChain<LaserScan> filter_chain_;
+  filters::FilterChain<sensor_msgs::msg::LaserScan> filter_chain_;
 
   // Components for publishing
-  LaserScan msg_;
-  rclcpp::Publisher<LaserScan>::SharedPtr output_pub_;
+  sensor_msgs::msg::LaserScan msg_;
+  rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr output_pub_;
 
   // Deprecation helpers
 #ifndef NO_TIMER
@@ -80,7 +76,7 @@ public:
     scan_sub_(nh_, "scan", 50),
     tf_(buffer_),
     tf_filter_(scan_sub_, buffer_, "", 50),
-    filter_chain_("LaserScan")
+    filter_chain_("sensor_msgs::msg::LaserScan")
   {
     // Configure filter chain
     
@@ -113,7 +109,7 @@ public:
     }
     
     // Advertise output
-    output_pub_ = nh_->create_publisher<LaserScan>("scan_filtered", 1000);
+    output_pub_ = nh_->create_publisher<sensor_msgs::msg::LaserScan>("scan_filtered", 1000);
 
 #ifndef NO_TIMER
     // Set up deprecation printout
@@ -142,7 +138,7 @@ public:
 #endif // !NO_TIMER
 
   // Callback
-  void callback(const std::shared_ptr<const LaserScan>& msg_in)
+  void callback(const std::shared_ptr<const sensor_msgs::msg::LaserScan>& msg_in)
   {
     // Run the filter chain
     if (filter_chain_.update(*msg_in, msg_))

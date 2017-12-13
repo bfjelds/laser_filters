@@ -81,8 +81,8 @@ public:
     nh_(nh),
     scan_sub_(nh_, "scan", 50),
     tf_(buffer_),
-    tf_filter_(scan_sub_, buffer_, "laser_frame", 50),
-    filter_chain_("LaserScan")
+    tf_filter_(scan_sub_, buffer_, "base_link", 50),
+    filter_chain_("sensor_msgs::msg::LaserScan")
   {
     ros::Time::init();
 
