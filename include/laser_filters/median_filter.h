@@ -44,6 +44,8 @@ typedef sensor_msgs::LaserScan LaserScane;
 #include <sensor_msgs/msg/Laser_Scan.hpp>
 typedef sensor_msgs::msg::LaserScan LaserScan;
 
+#define ROS_INFO(...)
+
 #endif // !ROS2
 
 #include "filters/median.h"

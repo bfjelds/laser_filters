@@ -53,6 +53,8 @@ typedef sensor_msgs::msg::LaserScan LaserScan;
 #define _USE_MATH_DEFINES // for C  
 #include <math.h>  
 
+#define ROS_INFO(...)
+
 #endif // !ROS2
 
 #include <angles/angles.h>
