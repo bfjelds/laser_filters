@@ -269,6 +269,7 @@ public:
 int
 main (int argc, char** argv)
 {
+  ros::Time::init();
   rclcpp::init(argc, argv);
   auto nh = rclcpp::Node::make_shared("scan_to_cloud_filter_chain");
   ScanToCloudFilterChain f(nh);

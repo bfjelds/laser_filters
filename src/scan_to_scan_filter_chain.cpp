@@ -49,11 +49,11 @@ protected:
   rclcpp::Node::SharedPtr nh_;
 
   // Components for tf::MessageFilter
-  tf2_ros::TransformListener tf_;
+  std::shared_ptr<tf2_ros::TransformListener> tf_;
   tf2_ros::Buffer buffer_;
 
   message_filters::Subscriber<sensor_msgs::msg::LaserScan> scan_sub_;
-  tf2_ros::MessageFilter<sensor_msgs::msg::LaserScan> tf_filter_;
+  std::shared_ptr<tf2_ros::MessageFilter<sensor_msgs::msg::LaserScan>> tf_filter_;
   double tf_filter_tolerance_;
 
   // Filter Chain
@@ -74,8 +74,8 @@ public:
   ScanToScanFilterChain(rclcpp::Node::SharedPtr node) :
     nh_(node),
     scan_sub_(nh_, "scan", 50),
-    tf_(buffer_),
-    tf_filter_(scan_sub_, buffer_, "", 50),
+    tf_(NULL),
+    tf_filter_(NULL),
     filter_chain_("sensor_msgs::msg::LaserScan")
   {
     // Configure filter chain
@@ -90,17 +90,19 @@ public:
     
     std::string tf_message_filter_target_frame;
 
-    if (!nh_->get_parameter("tf_message_filter_target_frame", variant))
+    if (nh_->get_parameter("tf_message_filter_target_frame", variant))
     {
       nh_->get_parameter("tf_message_filter_target_frame", tf_message_filter_target_frame);
 
       nh_->get_parameter_or("tf_message_filter_tolerance", tf_filter_tolerance_, 0.03);
 
-      tf_filter_.setTargetFrame(tf_message_filter_target_frame);
-      tf_filter_.setTolerance(tf2::Duration(ros::Duration(tf_filter_tolerance_).toNSec()));
+      tf_.reset(new tf2_ros::TransformListener(buffer_));
+      tf_filter_.reset(new tf2_ros::MessageFilter<sensor_msgs::msg::LaserScan>(scan_sub_, buffer_, "", 50));
+      tf_filter_->setTargetFrame(tf_message_filter_target_frame);
+      tf_filter_->setTolerance(tf2::Duration(ros::Duration(tf_filter_tolerance_).toNSec()));
 
       // Setup tf::MessageFilter generates callback
-      tf_filter_.registerCallback(std::bind(&ScanToScanFilterChain::callback, this, std::placeholders::_1));
+      tf_filter_->registerCallback(std::bind(&ScanToScanFilterChain::callback, this, std::placeholders::_1));
     }
     else 
     {
@@ -151,6 +153,7 @@ public:
 
 int main(int argc, char **argv)
 {
+  ros::Time::init();
   rclcpp::init(argc, argv);
   auto nh = rclcpp::Node::make_shared("scan_to_scan_filter_chain");
   ScanToScanFilterChain t(nh);

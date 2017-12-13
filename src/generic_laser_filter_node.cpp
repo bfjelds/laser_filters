@@ -84,8 +84,6 @@ public:
     tf_filter_(scan_sub_, buffer_, "base_link", 50),
     filter_chain_("sensor_msgs::msg::LaserScan")
   {
-    ros::Time::init();
-
     // Configure filter chain
     filter_chain_.configure(nh_);
     
@@ -125,6 +123,7 @@ public:
 
 int main(int argc, char **argv)
 {
+  ros::Time::init();
   rclcpp::init(argc, argv);
   auto nh = rclcpp::Node::make_shared("scan_filter_node");
   GenericLaserScanFilterNode t(nh);
